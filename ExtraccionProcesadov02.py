@@ -43,7 +43,7 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
     t = np.asarray(t, dtype=np.float64)  # Asegurarse de que el tiempo sea float64
 
     # Suavizar la señal
-    smoothed_signal = smooth_signal(signal, window_size=100)
+    smoothed_signal = smooth_signal(signal, window_size=75)
 
     rolling_mean, rolling_std = calculate_rolling_stats(smoothed_signal, window_size)
     
@@ -67,11 +67,11 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
             i += step_size
             continue
 
-        # Si se detecta un inicio de señal, extraer una ventana de 3000 muestras a partir de ese punto
+        # Si se detecta un inicio de señal, extraer una ventana  a partir de ese punto
         end_index = i + start_index + peak_window_size
         if end_index > len(signal):
             end_index = len(signal)
-        peak_window = signal[i + start_index-1000:end_index]
+        peak_window = smoothed_signal[i + start_index-1000:end_index]
         peak_window_t = t[i + start_index-1000:end_index]
 
         # Encontrar el pico más alto en la ventana de 3000 muestras
