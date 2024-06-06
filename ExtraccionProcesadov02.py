@@ -43,7 +43,7 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
     t = np.asarray(t, dtype=np.float64)  # Asegurarse de que el tiempo sea float64
 
     # Suavizar la señal
-    smoothed_signal = smooth_signal(signal, window_size=75)
+    smoothed_signal = smooth_signal(signal, window_size=100)
 
     rolling_mean, rolling_std = calculate_rolling_stats(smoothed_signal, window_size)
     
@@ -84,22 +84,58 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         highest_peak_time = peak_window_t[highest_peak_index]
         highest_peak_global_index = i + start_index + highest_peak_index
 
+        # Derivada de la señal
+        derivative = np.gradient(peak_window, peak_window_t)
+
+        # Suavizar la derivada
+        smoothed_derivative = smooth_signal(derivative, window_size=100)
+        print(smoothed_derivative)
+        # Detectar el punto donde la derivada comienza a subir hacia el pico
+        init_index = np.argmax(smoothed_derivative > 6000)  # Umbral para detectar inicio del incremento
+        init_time = peak_window_t[init_index]   
+
         # Calcular la velocidad
-        distance_km = 0.0032  # 32 cm in kilometers
-        time_seconds = highest_peak_time - peak_window_t[0]  # Δt in seconds desde el inicio de la señal
+        distance_km = 0.00032  # 32 cm in kilometers
+        time_seconds = highest_peak_time - init_time # Δt in seconds desde el inicio de la señal
         time_hours = time_seconds / 3600  # Convert seconds to hours
         velocity_kmh = distance_km / time_hours if time_hours > 0 else 0
         print(velocity_kmh)
 
-        # Plotear la ventana centrada en el pico
-        plt.figure(figsize=(12, 8))
-        plt.plot(peak_window_t, peak_window, label='Ventana centrada en el pico')
-        plt.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
-        plt.xlabel('Tiempo (s)')
-        plt.ylabel('Amplitud')
-        plt.title(f'Ventana centrada en el pico {highest_peak_index + i}')
-        plt.legend()
-        plt.grid(True)
+        # # Plotear la ventana centrada en el pico
+        # plt.figure(figsize=(12, 8))
+        # plt.plot(peak_window_t, peak_window, label='Ventana centrada en el pico')
+        # plt.plot(peak_window_t, smoothed_derivative, label='Derivada de la señal', linestyle='dashed')
+        # plt.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
+        # plt.plot(init_time, peak_window[init_index], 'go', label='Inicio de la subida')
+        # plt.xlabel('Tiempo (s)')
+        # plt.ylabel('Amplitud')
+        # plt.title(f'Ventana centrada en el pico {highest_peak_index + i}')
+        # plt.legend()
+        # plt.grid(True)
+        # plt.show()
+
+
+        fig, ax1 = plt.subplots(figsize=(12, 8))
+
+        # Graficar la señal original
+        ax1.plot(peak_window_t, peak_window, label='Ventana centrada en el pico', color='b')
+        ax1.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
+        ax1.plot(init_time, peak_window[init_index], 'go', label='Inicio de la subida')
+        ax1.set_xlabel('Tiempo (s)')
+        ax1.set_ylabel('Amplitud', color='b')
+        ax1.tick_params(axis='y', labelcolor='b')
+
+        # Crear un segundo eje y para la derivada
+        ax2 = ax1.twinx()
+        ax2.plot(peak_window_t, smoothed_derivative, label='Derivada de la señal', color='r', linestyle='dashed')
+        ax2.set_ylabel('Derivada', color='r')
+        ax2.tick_params(axis='y', labelcolor='r')
+
+        fig.tight_layout()
+        fig.suptitle(f'Ventana centrada en el pico {highest_peak_index + i}', y=1.02)
+        ax1.legend(loc='upper left')
+        ax2.legend(loc='upper right')
+        ax1.grid(True)
         plt.show()
 
         # Guardar la traza en un archivo CSV junto con su velocidad
@@ -111,6 +147,7 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         # Asegurarse de que el índice no se quede estancado
         if i <= highest_peak_global_index:
             i = highest_peak_global_index + step_size
+
 
 # Función principal
 def main():
