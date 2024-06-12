@@ -37,6 +37,15 @@ def save_trace_to_csv(peak_window, peak_index, velocity):
 def smooth_signal(signal, window_size):
     return np.convolve(signal, np.ones(window_size) / window_size, mode='same')
 
+# Función para detectar el patrón específico de la señal
+def detect_pattern(peak_window, threshold=0.1):
+    min_val = np.min(peak_window)
+    max_val = np.max(peak_window)
+    if peak_window[0] < min_val + threshold and peak_window[-1] < min_val + threshold and max_val > min_val + threshold:
+        return True
+    return False
+
+
 
 def process_and_visualize_peaks(signal, t, window_size, peak_window_size, threshold_factor):
     signal = np.asarray(signal, dtype=np.float64)  # Asegurarse de que la señal sea float64
@@ -84,6 +93,11 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         highest_peak_time = peak_window_t[highest_peak_index]
         highest_peak_global_index = i + start_index + highest_peak_index
 
+        # Filtrar por el patrón específico de la señal
+        if not detect_pattern(peak_window):
+            i += step_size
+            continue
+
         # Derivada de la señal
         derivative = np.gradient(peak_window, peak_window_t)
 
@@ -100,20 +114,6 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         time_hours = time_seconds / 3600  # Convert seconds to hours
         velocity_kmh = distance_km / time_hours if time_hours > 0 else 0
         print(velocity_kmh)
-
-        # # Plotear la ventana centrada en el pico
-        # plt.figure(figsize=(12, 8))
-        # plt.plot(peak_window_t, peak_window, label='Ventana centrada en el pico')
-        # plt.plot(peak_window_t, smoothed_derivative, label='Derivada de la señal', linestyle='dashed')
-        # plt.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
-        # plt.plot(init_time, peak_window[init_index], 'go', label='Inicio de la subida')
-        # plt.xlabel('Tiempo (s)')
-        # plt.ylabel('Amplitud')
-        # plt.title(f'Ventana centrada en el pico {highest_peak_index + i}')
-        # plt.legend()
-        # plt.grid(True)
-        # plt.show()
-
 
         fig, ax1 = plt.subplots(figsize=(12, 8))
 
