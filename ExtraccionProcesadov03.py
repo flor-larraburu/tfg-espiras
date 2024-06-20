@@ -94,9 +94,9 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         highest_peak_global_index = i + start_index + highest_peak_index
 
         # Filtrar por el patrón específico de la señal
-        if not detect_pattern(peak_window):
-            i += step_size
-            continue
+        # if not detect_pattern(peak_window):
+        #     i += step_size
+        #     continue
 
         # Derivada de la señal
         derivative = np.gradient(peak_window, peak_window_t)

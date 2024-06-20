@@ -30,13 +30,10 @@ def save_trace_to_csv(peak_window, peak_index, velocity):
         writer.writerow(peak_window)
         # Escribir la velocidad
         writer.writerow([f'Velocidad: {velocity:.2f} km/h'])
-    # print(f"La traza {peak_index + 1} se ha guardado exitosamente en el archivo '{csv_file}'.")
-
 
 # Función para suavizar la señal
 def smooth_signal(signal, window_size):
     return np.convolve(signal, np.ones(window_size) / window_size, mode='same')
-
 
 def process_and_visualize_peaks(signal, t, window_size, peak_window_size, threshold_factor):
     signal = np.asarray(signal, dtype=np.float64)  # Asegurarse de que la señal sea float64
@@ -90,8 +87,8 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         # Suavizar la derivada
         smoothed_derivative = smooth_signal(derivative, window_size=100)
         # Detectar el punto donde la derivada comienza a subir hacia el pico
-        init_index = np.argmax(smoothed_derivative > 6000)  # Umbral para detectar inicio del incremento
-        init_time = peak_window_t[init_index]   
+        init_index = np.argmax(smoothed_derivative > 15000)  # Umbral para detectar inicio del incremento
+        init_time = peak_window_t[init_index-100]   
 
         # Calcular la velocidad
         distance_km = 0.00032  # 32 cm in kilometers
@@ -100,45 +97,34 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         velocity_kmh = distance_km / time_hours if time_hours > 0 else 0
         print(velocity_kmh)
 
-        # # Plotear la ventana centrada en el pico
-        # plt.figure(figsize=(12, 8))
-        # plt.plot(peak_window_t, peak_window, label='Ventana centrada en el pico')
-        # plt.plot(peak_window_t, smoothed_derivative, label='Derivada de la señal', linestyle='dashed')
-        # plt.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
-        # plt.plot(init_time, peak_window[init_index], 'go', label='Inicio de la subida')
-        # plt.xlabel('Tiempo (s)')
-        # plt.ylabel('Amplitud')
-        # plt.title(f'Ventana centrada en el pico {highest_peak_index + i}')
-        # plt.legend()
-        # plt.grid(True)
-        # plt.show()
+        # Condición para verificar que el nivel de señal después del pico es similar al nivel en init_index en algún momento
+        post_peak_signal = peak_window[highest_peak_index:]
+        if len(post_peak_signal) > 0 and np.any(np.isclose(post_peak_signal, peak_window[init_index], atol=0.1)):
+            fig, ax1 = plt.subplots(figsize=(12, 8))
 
+            # Graficar la señal original
+            ax1.plot(peak_window_t, peak_window, label='Ventana centrada en el pico', color='b')
+            ax1.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
+            ax1.plot(init_time, peak_window[init_index], 'go', label='Inicio de la subida')
+            ax1.set_xlabel('Tiempo (s)')
+            ax1.set_ylabel('Amplitud', color='b')
+            ax1.tick_params(axis='y', labelcolor='b')
 
-        fig, ax1 = plt.subplots(figsize=(12, 8))
+            # Crear un segundo eje y para la derivada
+            ax2 = ax1.twinx()
+            ax2.plot(peak_window_t, smoothed_derivative, label='Derivada de la señal', color='r', linestyle='dashed')
+            ax2.set_ylabel('Derivada', color='r')
+            ax2.tick_params(axis='y', labelcolor='r')
 
-        # Graficar la señal original
-        ax1.plot(peak_window_t, peak_window, label='Ventana centrada en el pico', color='b')
-        ax1.plot(highest_peak_time, peak_window[highest_peak_index], 'ro', label='Pico más alto')
-        ax1.plot(init_time, peak_window[init_index], 'go', label='Inicio de la subida')
-        ax1.set_xlabel('Tiempo (s)')
-        ax1.set_ylabel('Amplitud', color='b')
-        ax1.tick_params(axis='y', labelcolor='b')
+            fig.tight_layout()
+            fig.suptitle(f'Ventana centrada en el pico {highest_peak_index + i}', y=1.02)
+            ax1.legend(loc='upper left')
+            ax2.legend(loc='upper right')
+            ax1.grid(True)
+            plt.show()
 
-        # Crear un segundo eje y para la derivada
-        ax2 = ax1.twinx()
-        ax2.plot(peak_window_t, smoothed_derivative, label='Derivada de la señal', color='r', linestyle='dashed')
-        ax2.set_ylabel('Derivada', color='r')
-        ax2.tick_params(axis='y', labelcolor='r')
-
-        fig.tight_layout()
-        fig.suptitle(f'Ventana centrada en el pico {highest_peak_index + i}', y=1.02)
-        ax1.legend(loc='upper left')
-        ax2.legend(loc='upper right')
-        ax1.grid(True)
-        plt.show()
-
-        # Guardar la traza en un archivo CSV junto con su velocidad
-        save_trace_to_csv(peak_window, highest_peak_index + i, velocity_kmh)
+            # Guardar la traza en un archivo CSV junto con su velocidad
+            save_trace_to_csv(peak_window, highest_peak_index + i, velocity_kmh)
 
         # Continuar 500 muestras después del índice del pico más alto
         i = highest_peak_global_index + 500
@@ -146,7 +132,6 @@ def process_and_visualize_peaks(signal, t, window_size, peak_window_size, thresh
         # Asegurarse de que el índice no se quede estancado
         if i <= highest_peak_global_index:
             i = highest_peak_global_index + step_size
-
 
 # Función principal
 def main():
